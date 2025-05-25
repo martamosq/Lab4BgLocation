@@ -87,5 +87,13 @@ class LocationService : Service(), LocationUpdatesCallBack {
             "Location: (${location.latitude}, ${location.longitude})"
         )
         notificationManager?.notify(1, updatedNotification?.build())
+        sendLocationBroadcast(location)
+    }
+
+    private fun sendLocationBroadcast(location: Location) {
+        val intent = Intent("com.ar.backgroundlocation.LOCATION_UPDATE")
+        intent.putExtra("latitude", location.latitude)
+        intent.putExtra("longitude", location.longitude)
+        sendBroadcast(intent)
     }
 }
