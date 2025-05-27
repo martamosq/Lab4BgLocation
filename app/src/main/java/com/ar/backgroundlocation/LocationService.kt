@@ -11,7 +11,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
-
 /**
  * @Author: Abdul Rehman
  * @Date: 06/05/2024.
@@ -83,6 +82,7 @@ class LocationService : Service(), LocationUpdatesCallBack {
     }
 
     override fun onLocationUpdate(location: Location) {
+        Log.d(TAG, "Ubicación recibida: ${location.latitude}, ${location.longitude}")
         val updatedNotification = notification?.setContentText(
             "Location: (${location.latitude}, ${location.longitude})"
         )
@@ -95,5 +95,13 @@ class LocationService : Service(), LocationUpdatesCallBack {
         intent.putExtra("latitude", location.latitude)
         intent.putExtra("longitude", location.longitude)
         sendBroadcast(intent)
+
+        // Guardar en SharedPreferences la última ubicación
+        val prefs = getSharedPreferences("location_prefs", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("last_latitude", location.latitude.toString())
+            putString("last_longitude", location.longitude.toString())
+            apply()
+        }
     }
 }

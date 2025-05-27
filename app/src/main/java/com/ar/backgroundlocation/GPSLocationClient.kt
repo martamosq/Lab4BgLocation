@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -21,9 +22,7 @@ import com.google.android.gms.location.Priority
 class GPSLocationClient {
 
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-
     private var locationUpdatesCallBack: LocationUpdatesCallBack? = null
-
     fun setLocationUpdatesCallBack(locationUpdatesCallBack: LocationUpdatesCallBack?) {
         this.locationUpdatesCallBack = locationUpdatesCallBack
     }
@@ -56,22 +55,16 @@ class GPSLocationClient {
         if (ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             fusedLocationProviderClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
-                null
+                Looper.getMainLooper()
             )
         } else {
             locationUpdatesCallBack?.locationException("Permission is not granted")
         }
 
     }
-
-
 }

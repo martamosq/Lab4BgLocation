@@ -1,97 +1,83 @@
 package com.ar.backgroundlocation
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.runtime.Composable
-import androidx.compose.material3.*
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
-import com.ar.backgroundlocation.ui.theme.BackgroundLocationTheme
+import androidx.activity.compose.setContent
 
 class MainActivity : ComponentActivity() {
-    private val TAG = MainActivity::class.java.simpleName
+
+    private val requestPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val backgroundLocationGranted = permissions[Manifest.permission.ACCESS_BACKGROUND_LOCATION] ?: false
+
+        if (fineLocationGranted) {
+            startLocationService()
+        } else {
+            // Opcional: avisar que no hay permiso de ubicación
+        }
+
+        if (!backgroundLocationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Opcional: avisar que falta permiso background
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        checkAndRequestPermissions()
+
         setContent {
-            BackgroundLocationTheme {
-                MainScreen() // esta incluye botones Start/Stop + envío de ubicación
-            }
+            MainScreen()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (!hasNotificationPerm()) {
-                requestMultiplePermissions.launch(
-                    arrayOf(
-                        Manifest.permission.POST_NOTIFICATIONS,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    )
-                )
-            } else {
-                checkLocationPerm()
-            }
+    }
+
+    private fun checkAndRequestPermissions() {
+        val activity = this as Activity // Cast explícito requerido
+        val permissionsToRequest = mutableListOf<String>()
+
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_BACKGROUND_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            requestPermissionsLauncher.launch(permissionsToRequest.toTypedArray())
         } else {
-            checkLocationPerm()
+            // Ya tengo permisos, arranco el servicio
+            startLocationService()
         }
     }
 
-    private val requestMultiplePermissions = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        permissions.entries.forEach {
-            Log.d("DEBUG", "${it.key} = ${it.value}")
-            if (it.key == "android.permission.POST_NOTIFICATIONS" && it.value) {
-                askForBGPermission()
-            }
-        }
-    }
-
-    private val requestLocationPerm = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            askForBGPermission()
+    private fun startLocationService() {
+        val intent = Intent(this, LocationService::class.java)
+        intent.action = LocationService.ACTION_SERVICE_START
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
         } else {
-            Log.d(TAG, "Permission is not $isGranted")
-        }
-    }
-
-    private val requestBGLocationPerm = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            Log.d(TAG, "Background Permission is $isGranted")
-        } else {
-            Log.d(TAG, "Background Permission is not $isGranted")
-        }
-    }
-
-    private fun checkLocationPerm() {
-        if (!hasLocationPermission()) {
-            requestLocationPerm.launch(
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        } else {
-            askForBGPermission()
-        }
-    }
-
-    private fun askForBGPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (!hasBGLocationPermission()) {
-                requestBGLocationPerm.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-            }
+            startService(intent)
         }
     }
 }
+
+
 
 
 

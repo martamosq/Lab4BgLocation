@@ -22,7 +22,6 @@ fun showNotification(context: Context, title: String, message: String) {
         .setContentTitle(title)
         .setContentText(message)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
     with(NotificationManagerCompat.from(context)) {
         notify(System.currentTimeMillis().toInt(), builder.build())
     }
